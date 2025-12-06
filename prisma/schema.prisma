@@ -1,0 +1,45 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Asset {
+  id          Int      @id @default(autoincrement())
+  assetCode   String   @unique
+  ownerId     String
+  ownerName   String
+  managerId   String
+  managerName String
+  department  String   // 소속 정보
+  description String?
+  qrUrl       String?
+  status      String   @default("ACTIVE")
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AssetSequence {
+  id           Int      @id @default(autoincrement())
+  date         String   @unique // YYYYMMDD format
+  currentCount Int      @default(0)
+  updatedAt    DateTime @updatedAt
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  employeeId   String   @unique // 사번
+  password     String   // 해시된 비밀번호
+  department   String   // 소속
+  role         String   @default("EMPLOYEE") // 기본값: "EMPLOYEE"
+  is2FAEnabled Boolean  @default(false) // 기본값: false
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
