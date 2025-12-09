@@ -18,6 +18,17 @@ import { DashboardMetrics } from '@/components/dashboard/DashboardMetrics';
 import { DashboardCharts } from '@/components/dashboard/DashboardCharts';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 export default function Home() {
   const router = useRouter();
@@ -25,6 +36,7 @@ export default function Home() {
   const [assets, setAssets] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
   useEffect(() => {
     async function init() {
@@ -52,8 +64,16 @@ export default function Home() {
   }, [router]);
 
   async function handleDelete(id: number) {
-    if (!confirm('정말로 삭제하시겠습니까?')) return;
-    const result = await deleteAssetById(id);
+    // Open dialog instead of window.confirm
+    setDeleteTargetId(id);
+  }
+
+  async function confirmDelete() {
+    if (!deleteTargetId) return;
+
+    const result = await deleteAssetById(deleteTargetId);
+    setDeleteTargetId(null); // Close dialog
+
     if (result.success) {
       // Refresh data
       const assetsResult = await getAssets();
@@ -138,7 +158,7 @@ export default function Home() {
                     <TableCell>
                       {asset.managerName} ({asset.managerId})
                     </TableCell>
-                    <TableCell>{asset.department}</TableCell>
+                    <TableCell>{asset.department?.name || '-'}</TableCell>
                     <TableCell>{asset.status}</TableCell>
                     <TableCell>
                       {new Date(asset.createdAt).toLocaleDateString()}
@@ -168,6 +188,23 @@ export default function Home() {
           </Table>
         </div>
       </div>
+
+      <AlertDialog open={!!deleteTargetId} onOpenChange={(open) => !open && setDeleteTargetId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>정말로 삭제하시겠습니까?</AlertDialogTitle>
+            <AlertDialogDescription>
+              이 작업은 되돌릴 수 없으며, 자산 목록에서 영구적으로 제거되지는 않으나 삭제 처리됩니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }

@@ -40,7 +40,8 @@ export default function NewAssetPage() {
         if (result.success) {
             router.push('/');
         } else {
-            setError('자산 등록에 실패했습니다. 입력 값을 확인해주세요.');
+            const errorMessage = typeof result.error === 'string' ? result.error : '자산 등록에 실패했습니다. 입력 값을 확인해주세요.';
+            setError(errorMessage);
             console.error(result.error);
         }
     }

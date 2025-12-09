@@ -192,6 +192,10 @@ export default function AssetDetailPage({ params }: { params: Promise<{ assetCod
                                             </div>
                                         </div>
                                         <div>
+                                            <Label className="text-gray-500">소속</Label>
+                                            <p className="font-medium">{asset.department?.name || '-'}</p>
+                                        </div>
+                                        <div>
                                             <Label className="text-gray-500">상태</Label>
                                             <p className="font-medium">{asset.status}</p>
                                         </div>

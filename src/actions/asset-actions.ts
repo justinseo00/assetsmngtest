@@ -60,6 +60,11 @@ export async function createAsset(formData: FormData) {
             const sequenceNum = sequence.currentCount.toString().padStart(5, '0');
             const assetCode = `A${dateStr}${sequenceNum}`;
 
+            // Find department by name (approximate match for legacy string-based user.department)
+            const dept = await tx.department.findFirst({
+                where: { name: user.department }
+            });
+
             return await tx.asset.create({
                 data: {
                     assetCode,
@@ -70,7 +75,7 @@ export async function createAsset(formData: FormData) {
                     description,
                     qrUrl,
                     status,
-                    department: user.department,
+                    departmentId: dept?.id,
                 },
             });
         });
@@ -79,7 +84,7 @@ export async function createAsset(formData: FormData) {
         return { success: true, data: asset };
     } catch (error) {
         console.error('Failed to create asset:', error);
-        return { success: false, error: 'Failed to create asset' };
+        return { success: false, error: '자산 등록 실패: ' + (error instanceof Error ? error.message : String(error)) };
     }
 }
 
@@ -93,14 +98,18 @@ export async function getAssets() {
     try {
         let where: any = { deletedAt: null };
         if (user.role !== 'ADMIN') {
-            where = { ...where, department: user.department };
+            where = {
+                ...where,
+                department: { name: user.department }
+            };
         }
 
         console.log('getAssets user:', user.employeeId, user.role, user.department);
-        console.log('getAssets where:', JSON.stringify(where));
+        // console.log('getAssets where:', JSON.stringify(where));
 
         const assets = await prisma.asset.findMany({
             where,
+            include: { department: true },
             orderBy: { createdAt: 'desc' },
         });
         console.log('getAssets count:', assets.length);
@@ -115,6 +124,7 @@ export async function getAssetByCode(assetCode: string) {
     try {
         const asset = await prisma.asset.findUnique({
             where: { assetCode },
+            include: { department: true },
         });
         if (!asset || asset.deletedAt) return { success: false, error: 'Asset not found' };
         return { success: true, data: asset };
@@ -203,7 +213,10 @@ export async function getDashboardStats() {
     try {
         let where: any = { deletedAt: null };
         if (user.role !== 'ADMIN') {
-            where = { ...where, department: user.department };
+            where = {
+                ...where,
+                department: { name: user.department }
+            };
         }
 
         console.log('getDashboardStats user:', user.employeeId, user.role, user.department);
