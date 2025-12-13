@@ -54,6 +54,11 @@ export default function NewAssetPage() {
                 </CardHeader>
                 <CardContent>
                     <form action={handleSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="assetName">자산명</Label>
+                            <Input id="assetName" name="assetName" required placeholder="예: 사무용 노트북" />
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="ownerId">소유자 사번</Label>

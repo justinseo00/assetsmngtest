@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth';
 
 const createAssetSchema = z.object({
+    assetName: z.string().min(1, '자산명을 입력해주세요.'),
     ownerId: z.string().min(1, '소유자 사번을 입력해주세요.'),
     ownerName: z.string().min(1, '소유자 성명을 입력해주세요.'),
     managerId: z.string().min(1, '관리자 사번을 입력해주세요.'),
@@ -22,6 +23,7 @@ export async function createAsset(formData: FormData) {
     }
 
     const rawData = {
+        assetName: formData.get('assetName'),
         ownerId: formData.get('ownerId'),
         ownerName: formData.get('ownerName'),
         managerId: formData.get('managerId'),
@@ -40,7 +42,7 @@ export async function createAsset(formData: FormData) {
         };
     }
 
-    const { ownerId, ownerName, managerId, managerName, description, qrUrl, status } = validatedFields.data;
+    const { assetName, ownerId, ownerName, managerId, managerName, description, qrUrl, status } = validatedFields.data;
 
     try {
         const asset = await prisma.$transaction(async (tx: any) => {
@@ -61,13 +63,18 @@ export async function createAsset(formData: FormData) {
             const assetCode = `A${dateStr}${sequenceNum}`;
 
             // Find department by name (approximate match for legacy string-based user.department)
-            const dept = await tx.department.findFirst({
-                where: { name: user.department }
-            });
+            let deptId = null;
+            if (user.department) {
+                const dept = await tx.department.findFirst({
+                    where: { name: user.department }
+                });
+                deptId = dept?.id;
+            }
 
             return await tx.asset.create({
                 data: {
                     assetCode,
+                    assetName,
                     ownerId,
                     ownerName,
                     managerId,
@@ -75,7 +82,7 @@ export async function createAsset(formData: FormData) {
                     description,
                     qrUrl,
                     status,
-                    departmentId: dept?.id,
+                    departmentId: deptId,
                 },
             });
         });

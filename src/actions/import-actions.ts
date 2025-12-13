@@ -1,6 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
+import { Department } from '@prisma/client';
 import * as XLSX from 'xlsx';
 import { revalidatePath } from 'next/cache';
 
@@ -91,7 +92,7 @@ export async function importAssetsFromExcel(formData: FormData) {
                             deptCache.set(currentPath, existingDept.id);
                         } else {
                             // Create
-                            const newDept = await prisma.department.create({
+                            const newDept: Department = await prisma.department.create({
                                 data: {
                                     name: part,
                                     path: currentPath,
