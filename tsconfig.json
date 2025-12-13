@@ -38,7 +38,7 @@
   ],
   "exclude": [
     "node_modules",
-    // 🚨 이 라인을 추가하여 빌드 대상에서 제외 🚨
-    "prisma.config.ts"
+    "prisma.config.ts",
+    "scripts"
   ]
 }
