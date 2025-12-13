@@ -19,6 +19,7 @@
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
     "@tailwindcss/postcss": "^4.1.18",
+    "@types/node": "^20.19.26",
     "autoprefixer": "^10.4.22",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
@@ -43,7 +44,6 @@
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^20.19.26",
     "@types/pg": "^8.15.6",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
