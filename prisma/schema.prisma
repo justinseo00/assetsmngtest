@@ -27,6 +27,16 @@ model Asset {
   deletedAt    DateTime?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
+  modelId      Int?
+  model        Model?      @relation(fields: [modelId], references: [id])
+}
+
+model Model {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  assets    Asset[]
 }
 
 model Department {

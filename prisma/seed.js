@@ -1,11 +1,15 @@
 const { Client } = require('pg');
 const bcrypt = require('bcryptjs');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../.env.local') });
+//require('dotenv').config({ path: path.join(__dirname, '../.env.local') });
 
 async function main() {
     const client = new Client({
         connectionString: process.env.DATABASE_URL,
+        // 👇 이 부분이 핵심이야! SSL 연결을 강제하는 옵션
+        ssl: {
+            rejectUnauthorized: false,
+        },
     });
 
     try {

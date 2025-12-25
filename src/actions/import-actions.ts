@@ -9,13 +9,10 @@ interface ExcelRow {
     '자산번호': string | number;
     '자산명'?: string;
     '소속'?: string;
-    '소유자사번'?: string | number;
-    '소유자명'?: string;
-    '관리자사번'?: string | number;
-    '관리자명'?: string;
-    '설명'?: string;
-    'QR'?: string;
-    '상태'?: string;
+    '소유자'?: string; // ownerName
+    '사번'?: string | number; // ownerId (User.employeeId)
+    // '모델명'?: string; 
+    // '운영자사번'?: string | number;
     // Allow other columns
     [key: string]: any;
 }
@@ -47,9 +44,6 @@ export async function importAssetsFromExcel(formData: FormData) {
         let createdDepts = 0;
 
         // Cache for ensuring we don't query same dept repeatedly in loop
-        // Key: path, Value: id
-        // Note: For full correctness across requests, we should trust DB, but here we can cache locally for speed within batch.
-        // We will query DB if not in cache, then add to cache.
         const deptCache = new Map<string, number>();
 
         for (const row of rows) {
@@ -58,14 +52,26 @@ export async function importAssetsFromExcel(formData: FormData) {
 
             const assetName = row['자산명'] || '무명자산';
             const deptString = row['소속'] ? String(row['소속']) : '';
-            const ownerId = row['소유자사번'] ? String(row['소유자사번']) : 'UNKNOWN';
-            const ownerName = row['소유자명'] || '미확인';
-            const managerId = row['관리자사번'] ? String(row['관리자사번']) : 'UNKNOWN';
-            const managerName = row['관리자명'] || '미확인';
-            const description = row['설명'] || '';
-            const qrUrl = row['QR'] || '';
-            const status = row['상태'] || 'ACTIVE';
 
+            // User Mapping
+            const employeeId = row['사번'] ? String(row['사번']) : null;
+            const ownerName = row['소유자'] || '미확인';
+            let ownerId = 'UNKNOWN';
+
+            if (employeeId) {
+                // Verify user exists (Optional but recommended)
+                // For bulk performance, we might skip this query if we trust the excel, 
+                // but strictly we should check or just use the string if the column is simple string.
+                // However, Asset.ownerId is String type. If we treat it as FK to User.employeeId, checks are good.
+                // But if User table doesn't have it, FK constraint fails? 
+                // Wait, Asset.ownerId is just String, not @relation to User in schema (it was loose relation in original schema).
+                // Let's check Schema. User has employeeId @unique. 
+                // Asset has ownerId String. No explicit @relation in Asset to User.
+                // So we can just save it.
+                ownerId = employeeId;
+            }
+
+            // Department Logic
             let finalDepartmentId: number | null = null;
 
             if (deptString) {
@@ -92,8 +98,10 @@ export async function importAssetsFromExcel(formData: FormData) {
                             deptCache.set(currentPath, existingDept.id);
                         } else {
                             // Create
-                            const newDept: Department = await prisma.department.create({
-                                data: {
+                            const newDept: Department = await prisma.department.upsert({
+                                where: { path: currentPath },
+                                update: {},
+                                create: {
                                     name: part,
                                     path: currentPath,
                                     depth: depth,
@@ -101,13 +109,17 @@ export async function importAssetsFromExcel(formData: FormData) {
                                 }
                             });
                             parentId = newDept.id;
+                            createdDepts++; // Count created
                             deptCache.set(currentPath, newDept.id);
-                            createdDepts++;
                         }
                     }
                 }
                 finalDepartmentId = parentId;
             }
+
+            // Model Logic (Skipped as column missing, placeholder)
+            let modelId: number | null = null;
+            // if (row['모델명']) { ... }
 
             // Upsert Asset
             await prisma.asset.upsert({
@@ -117,11 +129,9 @@ export async function importAssetsFromExcel(formData: FormData) {
                     departmentId: finalDepartmentId,
                     ownerId,
                     ownerName,
-                    managerId,
-                    managerName,
-                    description,
-                    qrUrl,
-                    status,
+                    // managerId: ... (skipped)
+                    // managerName: ...
+                    modelId, // New field
                     updatedAt: new Date(),
                 },
                 create: {
@@ -130,11 +140,10 @@ export async function importAssetsFromExcel(formData: FormData) {
                     departmentId: finalDepartmentId,
                     ownerId,
                     ownerName,
-                    managerId,
-                    managerName,
-                    description,
-                    qrUrl,
-                    status,
+                    managerId: 'UNKNOWN', // Default
+                    managerName: '미확인',
+                    modelId,
+                    status: 'ACTIVE',
                 }
             });
             processedAssets++;
@@ -144,7 +153,7 @@ export async function importAssetsFromExcel(formData: FormData) {
 
         return {
             success: true,
-            message: `${processedAssets}개의 자산과 ${createdDepts}개의 신규 부서가 처리되었습니다.`
+            message: `${processedAssets}개의 자산이 처리되었습니다. (신규/갱신 포함)`
         };
 
     } catch (error) {
